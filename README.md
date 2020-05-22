@@ -29,7 +29,7 @@ cd emojibomb/simple_tcp_server
 cargo run
 ```
 
-example server will be listening on port 8888. It will binds to wildcard IPv4 addresses. You can change it to local loopback(127.0.0.1) to be safer on `emojibomb/simple_tcp_server.main.rs` if you want. (as of May 21, 2020)
+example server will be listening on port 8888. It will binds to wildcard IPv4 addresses. You can change it to local loopback(127.0.0.1) to be safer on `emojibomb/simple_tcp_server/src/main.rs` if you want. (as of May 21, 2020)
 
 ### starting up the client
 
