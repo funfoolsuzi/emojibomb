@@ -1,0 +1,11 @@
+[package]
+name = "simple_tcp_client"
+version = "0.1.0"
+authors = ["xiwenli"]
+edition = "2018"
+
+[dependencies]
+emojibomb = { path = "../../emojibomb" }
+simple_tcp_server = { path = "../simple_tcp_server" }
+rand = "*"
+cursive = "*"

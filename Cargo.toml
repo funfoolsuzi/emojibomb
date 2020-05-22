@@ -1,0 +1,11 @@
+[package]
+name = "emojibomb"
+version = "0.1.0"
+authors = ["xiwenli"]
+edition = "2018"
+
+[dependencies]
+emojibomb_derive = { path = "./emojibomb_derive" }
+
+[dev-dependencies]
+rand = "*"
