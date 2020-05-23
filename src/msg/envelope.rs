@@ -10,7 +10,7 @@ pub enum Envelope {
     PlayerCreated(Box<player::CreatedMsg>),
     PlayerAdd(Box<player::AttachMsg>),
     PlayerMove(Box<player::MoveMsg>),
-    MapCreate(Box<MapCreateMsg>),
+    MapCreate(Box<map::CreateMsg>),
 }
 
 impl Envelope {
@@ -31,7 +31,7 @@ impl Envelope {
             MsgType::PlayerDelete =>
                 Ok(Self::PlayerDelete(player::DeleteMsg::read_from(reader)?)),
             MsgType::MapCreate =>
-                Ok(Self::MapCreate(Box::new(MapCreateMsg::read_from(reader)?))),
+                Ok(Self::MapCreate(Box::new(map::CreateMsg::read_from(reader)?))),
             MsgType::Empty =>
                 Err(std::io::Error::new(std::io::ErrorKind::Other, "Empty MsgType can't be read_from'd")),
         }

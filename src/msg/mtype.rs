@@ -24,7 +24,7 @@ impl MsgType {
             Self::PlayerMove => std::mem::size_of::<player::MoveMsg>(),
             Self::PlayerCreated => std::mem::size_of::<player::CreatedMsg>(),
             Self::PlayerDelete => std::mem::size_of::<player::DeleteMsg>(),
-            Self::MapCreate => std::mem::size_of::<super::MapCreateMsg>(),
+            Self::MapCreate => std::mem::size_of::<super::map::CreateMsg>(),
         }        
     }
 }

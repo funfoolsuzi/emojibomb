@@ -1,6 +1,5 @@
 use crate::{
-    map::{Map},
-    player,
+    map, player,
     transport::*,
     msg::*,
 };
@@ -11,7 +10,7 @@ use std::{
 
 struct MsgLoopArgvs {
     in_r: Receiver<(ClientHeader, Envelope)>,
-    map: Map,
+    map: map::Map,
     players: player::Store,
 }
 
@@ -26,7 +25,7 @@ impl ServerEngine {
         let mut se = ServerEngine {
             in_s,
             msg_loop_args: Some(MsgLoopArgvs {
-                map: Map::default(),
+                map: map::Map::default(),
                 players: player::Store::default(),
                 in_r,
             })
@@ -59,7 +58,7 @@ fn msg_loop(mut s: MsgLoopArgvs) {
 
 fn process_msg(
     envelope: Envelope,
-    map: &mut Map,
+    map: &mut map::Map,
     players: &mut player::Store,
     msg_id: u32,
 ) -> bool {
@@ -70,15 +69,15 @@ fn process_msg(
         Envelope::Register(sender) => {
             sender.send(Arc::new(Envelope::SlotReserved(crate::player::SlotReservedMsg(players.reserve(sender.clone()))))).unwrap();
         },
-        Envelope::PlayerDelete(m) => handle_delete_player(players, m),
-        Envelope::PlayerAdd(m) => m.act(players, map),
-        Envelope::PlayerMove(m) => handle_player_move(players, map, &m, msg_id),
+        Envelope::PlayerDelete(m) => handle_delete_player(m, players),
+        Envelope::PlayerAdd(m) => handle_attach_player(*m, players, map),
+        Envelope::PlayerMove(m) => handle_player_move(&m, players, map, msg_id),
         _ => {},
     };
     true
 }
 
-fn handle_player_move(players: &mut player::Store, map: &Map, msg: &player::MoveMsg, msg_id: u32) {
+fn handle_player_move(msg: &player::MoveMsg, players: &mut player::Store, map: &map::Map, msg_id: u32) {
     let success = players.relocate(msg, map.get_size_u16());
     let status = if success {
         players.send_except(Some(msg.id), Arc::new(Envelope::PlayerMove(Box::new(msg.clone()))));
@@ -87,7 +86,34 @@ fn handle_player_move(players: &mut player::Store, map: &Map, msg: &player::Move
     players.get_sender(msg.id).unwrap().send(Arc::new(Envelope::Confirm(Box::new(ConfirmMsg::new(msg_id, status))))).unwrap();
 }
 
-fn handle_delete_player(players: &mut player::Store, msg: player::DeleteMsg) {
+fn handle_delete_player(msg: player::DeleteMsg, players: &mut player::Store) {
     players.remove(msg.id);
     players.send_except(None, Arc::new(Envelope::PlayerDelete(msg)));
+}
+
+fn handle_attach_player(msg: player::AttachMsg, players: &mut player::Store, map: &map::Map) {
+    let mut new_player = player::Player::new(
+        &msg.name, msg.client_id,
+        (0, 0), 100
+    );
+    let map_size = map.get_size();
+    players.attach_player(&mut new_player, (map_size.0 as u16, map_size.1 as u16));
+    let env = Envelope::PlayerCreated(Box::new(new_player.into()));
+    let ptr = Arc::new(env);
+    let mut existing_player_msgs: Vec<Arc<Envelope>> = vec!();
+    for entry in players.iter() {
+        if let Some(player) = &entry.player {
+            if player.id != msg.client_id {
+                existing_player_msgs.push(Arc::new(Envelope::PlayerCreated(Box::new(player.clone().into()))));
+            }
+            entry.sender.send(ptr.clone()).unwrap();                
+        }
+    }
+    let to_new_client = players.get_sender(msg.client_id).unwrap();
+    to_new_client.send(
+        Arc::new(Envelope::MapCreate(Box::new(map::CreateMsg::new(map.clone()))))
+    ).unwrap();
+    for m in existing_player_msgs {
+        to_new_client.send(m).unwrap();
+    }
 }

@@ -1,9 +1,6 @@
 use crate::msg::{ MsgType};
 use emojibomb_derive::{WriteTo, ReadFrom};
 
-pub const CLIENT_HEADER_SIZE: usize = 8;
-pub const SERVER_HEADER_SIZE: usize = 4;
-
 pub const CLIENT_MAGIC_NUM: u8 = 0x89;
 pub const SERVER_MAGIC_NUM: u8 = 0x64;
 
@@ -63,11 +60,5 @@ impl Default for ServerHeader {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
 
-    #[test]
-    fn size_test() {
-        ensure_size!(ServerHeader, SERVER_HEADER_SIZE);
-        ensure_size!(ClientHeader, CLIENT_HEADER_SIZE);
-    }
 }

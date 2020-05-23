@@ -6,9 +6,3 @@ pub fn debug_buf_to_byte(buf: &[u8]) -> String {
     }
     s
 }
-
-macro_rules! ensure_size {
-    ($type: path, $size: expr) => {
-        assert_eq!(std::mem::size_of::<$type>(), $size);
-    };
-}

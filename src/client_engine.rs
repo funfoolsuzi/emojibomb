@@ -8,42 +8,22 @@ use std::{
     sync::{Arc, RwLock, mpsc::{sync_channel, Receiver, SyncSender}}
 };
 
-/*
-Network msg loop receives server msg.
-Those msg includes confirmed state changes, which in turn triggers UI update.
-*/
-struct MsgLoopArgs {
-    in_net_r: Receiver<(ServerHeader, Envelope)>,
-    out_ui_s: SyncSender<GameState>,
-    msg_map: Arc<RwLock<std::collections::HashMap<u32, Envelope>>>,
-    state: GameState,
-}
-
 pub struct ClientEngine {
     out_ui_r: Receiver<GameState>,
     in_net_s: SyncSender<(ServerHeader, Envelope)>,
-    msg_loop_args: Option<MsgLoopArgs>
+    client_id: Option<u8>,
 }
 
 impl ClientEngine {
     pub fn new(state: GameState, msg_map: Arc<RwLock<std::collections::HashMap<u32, Envelope>>>) -> Self {
         let (in_net_s, in_net_r) = sync_channel::<(ServerHeader, Envelope)>(0);
         let (out_ui_s, out_ui_r) = sync_channel::<GameState>(64);
-        let mut ce = Self{
+        let ce = Self{
             out_ui_r, in_net_s,
-            msg_loop_args: Some(MsgLoopArgs{
-                in_net_r,
-                out_ui_s,
-                state,
-                msg_map,
-            })
+            client_id: None,
         };
-        ce.start();
+        std::thread::spawn(move || msg_loop(in_net_r, out_ui_s, msg_map, state));
         ce
-    }
-    fn start(&mut self) -> std::thread::JoinHandle<()> {
-        let args = self.msg_loop_args.take().unwrap();
-        std::thread::spawn(move || msg_loop(args))
     }
     pub fn get_sender(&self) -> SyncSender<(ServerHeader, Envelope)> {
         self.in_net_s.clone()
@@ -57,17 +37,22 @@ impl Iterator for ClientEngine {
     }
 }
 
-fn msg_loop(args: MsgLoopArgs) {
-    for (_header, env) in args.in_net_r {
+fn msg_loop(
+    in_net_r: Receiver<(ServerHeader, Envelope)>,
+    out_ui_s: SyncSender<GameState>,
+    msg_map: Arc<RwLock<std::collections::HashMap<u32, Envelope>>>,
+    state: GameState,
+) {
+    for (_header, env) in in_net_r {
         match env {
             Envelope::Confirm(m) => 
-                confirm_handler(&m, &args.msg_map, &args.state, &args.out_ui_s),
+                confirm_handler(&m, &msg_map, &state, &out_ui_s),
             Envelope::PlayerCreated(m) =>
-                player_created_handler(*m, &args.state, &args.out_ui_s),
+                player_created_handler(*m, &state, &out_ui_s),
             Envelope::PlayerMove(m) =>
-                player_move_handler(&m, &args.state, &args.out_ui_s),
+                player_move_handler(&m, &state, &out_ui_s),
             Envelope::PlayerDelete(m) =>
-                player_delete_handler(&m, &args.state, &args.out_ui_s),
+                player_delete_handler(&m, &state, &out_ui_s),
             _ => {}
         }
     }
