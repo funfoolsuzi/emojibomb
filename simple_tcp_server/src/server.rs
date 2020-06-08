@@ -45,6 +45,7 @@ fn handle_client_connection(
     let (tx, rx) = sync_channel::<Arc<Envelope>>(0);
     engine_sender.send((ClientHeader::default(), Envelope::Register(tx))).unwrap();
     let res = rx.recv().unwrap();
+    ServerHeader::new(res.msg_type()).write_to(&mut stream)?;
     res.write_to(&mut stream)?;
     stream.flush()?;
     if let Envelope::SlotReserved(m) = *res {

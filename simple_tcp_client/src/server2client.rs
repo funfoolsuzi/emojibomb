@@ -11,9 +11,8 @@ use emojibomb::{
 
 pub fn server_to_client_loop(
     stream_ptr: Arc<TcpStream>,
-    sender: SyncSender<(ServerHeader, Envelope)>,
-) -> impl Fn() {
-    move || {
+) -> impl FnOnce(SyncSender<(ServerHeader, Envelope)>) + Send + 'static {
+    move |sender: SyncSender<(ServerHeader, Envelope)>| {
         for msg_pair in ServerStreamBufReader::new(&stream_ptr) {
             sender.send(msg_pair).unwrap();
         }

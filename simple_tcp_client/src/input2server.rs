@@ -1,8 +1,7 @@
 use std::{
-    sync::{Arc, RwLock, mpsc::Receiver},
+    sync::{Arc, mpsc::Receiver},
     net::TcpStream,
     io::{BufWriter, Write},
-    collections::HashMap,
 };
 use emojibomb::{
     transport::{ClientHeader},
@@ -10,23 +9,14 @@ use emojibomb::{
 };
 
 pub fn input_to_cengine_loop(
-    rx: Receiver<Envelope>,
-    stream_ptr: Arc<TcpStream>,
-    msg_list: Arc<RwLock<HashMap<u32, Envelope>>>,
-    id: u8,
-)-> impl Fn() -> std::io::Result<()> {
-    use rand::RngCore;
-    move || {
+    stream_ptr: Arc<TcpStream>
+)-> impl FnOnce(Receiver<(ClientHeader, Envelope)>) + Send + 'static {
+    move |r| {
         let mut buf_writer: BufWriter<&TcpStream> = BufWriter::new(&stream_ptr);
-        let mut thread_rng = rand::thread_rng();
-        for env in rx.iter() {
-            let msg_id = thread_rng.next_u32();
-            let header = ClientHeader::new(env.msg_type(), id, msg_id);
-            msg_list.write().unwrap().insert(msg_id, env.clone());
-            header.write_to(&mut buf_writer)?;
-            env.write_to(&mut buf_writer)?;
-            buf_writer.flush()?;
+        for (h, e) in r {
+            h.write_to(&mut buf_writer).expect("");
+            e.write_to(&mut buf_writer).expect("");
+            buf_writer.flush().expect("");
         }
-        Ok(())
     }
 }
