@@ -2,6 +2,7 @@ use emojibomb::{
     server_engine::ServerEngine,
     transport::{ClientHeader, ServerHeader},
     msg::{Envelope},
+    log,
 };
 use std::{
     sync::{Arc, mpsc::{sync_channel, SyncSender, Receiver}},
@@ -21,11 +22,12 @@ impl Server {
     }
     pub fn start(&self, addr: &str) -> IOResult<std::thread::JoinHandle<IOResult<()>>> {
         let listener = TcpListener::bind(addr)?;
+        log::info!("bound to {}", addr);
         let sender = self.engine.get_sender();
         Builder::new().name("listener_t".to_owned()).spawn(move|| -> IOResult<()>{
             for res in listener.incoming() {
                 let stream = res?;
-                println!("Connection established from {}", stream.peer_addr()?);
+                log::info!("Connection established from {}", stream.peer_addr()?);
                 if let Some(_e) = handle_client_connection(
                     stream,
                     sender.clone(),
@@ -50,7 +52,7 @@ fn handle_client_connection(
     stream.flush()?;
     if let Envelope::SlotReserved(m) = *res {
         if let Some(client_id) = m.0 {
-            println!("sent assigned client id {}", client_id);
+            log::info!("sent assigned client id {}", client_id);
             let stream_ptr = Arc::new(stream);
             Builder::new().name(format!("client_{}_read_t", client_id))
             .spawn(from_client_loop(stream_ptr.clone(), engine_sender, client_id))?;
@@ -72,7 +74,7 @@ fn from_client_loop(
         for (header, envelope) in client_msg_iter {
             send_engine_with_retry(&engine_sender, (header, envelope), 3, "Error sending msg to engine");
         }
-        println!("connection closed: {} player_id: {}", addr, player_id);
+        log::info!("connection closed: {} player_id: {}", addr, player_id);
         engine_sender.send((ClientHeader::default(), Envelope::PlayerDelete(emojibomb::player::DeleteMsg{id: player_id}))).unwrap();
         Ok(())
     }
@@ -83,7 +85,7 @@ fn from_engine_loop(stream_ptr: Arc<TcpStream>, rx: Receiver<Arc<Envelope>>, id:
         let mut tcp_stream_write_buf: std::io::BufWriter<&TcpStream> = std::io::BufWriter::new(&stream_ptr);
         for msg in &rx {
             if let Some(e) = transmit_to_client(&mut tcp_stream_write_buf, msg, id).err() {
-                println!("error transmitting to client: {}\n shutting down connection", e);
+                log::error!("error transmitting to client: {}\n shutting down connection", e);
                 break
             }
         }
@@ -101,7 +103,7 @@ fn send_engine_with_retry(
         return
     }
     if let Some(e) = engine_sender.send(msg).err() {
-        println!("{} (retry left: {}) {}", fail, retry, e);
+        log::warn!("{} (retry left: {}) {}", fail, retry, e);
         send_engine_with_retry(engine_sender, e.0, retry-1, fail)
     }
 }
@@ -114,6 +116,6 @@ fn transmit_to_client(
     let header = ServerHeader::new(envelope.msg_type());
     header.write_to(tcp_stream_write_buf)?;
     envelope.write_to(tcp_stream_write_buf)?;
-    println!("msg type:{} sending to client#{}", header.mtype() as u16, id);
+    log::info!("msg type:{} sending to client#{}", header.mtype() as u16, id);
     tcp_stream_write_buf.flush()
 }

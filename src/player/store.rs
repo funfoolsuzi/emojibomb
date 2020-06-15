@@ -1,5 +1,6 @@
 use super::*;
 use crate::msg::Envelope;
+use crate::log;
 use std::sync::{Arc, mpsc::SyncSender};
 
 pub struct Entry {
@@ -22,7 +23,7 @@ impl Store {
         for i in 0..self.slots.len() {
             if let None = self.slots[i] {
                 self.slots[i] = Some(Entry::new(sender));
-                println!("PlayerStore slot#{} reserved", i);
+                log::info!("PlayerStore slot#{} reserved", i);
                 return Some(i as u8)
             }
         }
@@ -71,7 +72,7 @@ impl Store {
                 self.set.remove(&p.coord);
             }
         }
-        println!("PlayerStore entry #{} removed", client_id);
+        log::info!("PlayerStore entry #{} removed", client_id);
     }
     pub fn move_coord(&mut self, current: &(u16, u16), new: &(u16, u16)) -> bool {
         if !self.set.insert(*new) {

@@ -7,5 +7,6 @@ edition = "2018"
 [dependencies]
 emojibomb_derive = { path = "./emojibomb_derive" }
 rand = "*"
+loglib = { package = "log", version = "*" , features = ["std"]}
 
 [dev-dependencies]

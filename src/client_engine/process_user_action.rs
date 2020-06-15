@@ -4,6 +4,7 @@ use crate::{
     state::GameState,
     msg::{Envelope},
     player,
+    log,
 };
 use std::{
     sync::{Arc, RwLock, mpsc::{Receiver, SyncSender}}
@@ -54,6 +55,7 @@ fn handle_move(
         let e = Envelope::PlayerMove(Box::new(player::MoveMsg{id: user.id, coord: new_coord}));
         let h = ClientHeader::new(e.msg_type(), user.id, msg_id);
         msg_map.write().unwrap().insert(msg_id, e.clone());
+        log::info!("msg {} added to msg_map", msg_id);
         out_net_s.send((h, e)).unwrap();
     }
 }

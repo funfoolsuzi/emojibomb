@@ -6,6 +6,7 @@ use std::{
 use emojibomb::{
     transport::ClientHeader,
     msg::Envelope,
+    log,
 };
 
 pub struct ClientMsgIterator<'a>{
@@ -29,7 +30,7 @@ impl Iterator for ClientMsgIterator<'_> {
             })
         }) {
             Err(e) => {
-                println!("Error receiving msg: {}", e);
+                log::error!("Error receiving msg: {}", e);
                 None
             }
             Ok(r) => Some(r)

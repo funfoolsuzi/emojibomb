@@ -10,6 +10,7 @@ use std::{
 };
 use emojibomb::{
     client_engine::{Builder},
+    log,
 };
 use crate::{
     server2client::server_to_client_loop,
@@ -18,6 +19,9 @@ use crate::{
 };
 
 fn main() -> std::io::Result<()> {
+    let logf = std::env::current_dir()?.join("emoji.log").to_str().unwrap().to_owned();
+    println!("{}", logf);
+    log::init_logging(log::Level::Debug, logf)?;
     let mut builder = Builder::new();
     setup_transport(&mut builder)?;
     builder.wait_assignment();

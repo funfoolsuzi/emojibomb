@@ -2,6 +2,7 @@ use crate::{
     map, player,
     transport::*,
     msg::*,
+    log,
 };
 use std::{
     thread::JoinHandle,
@@ -47,9 +48,9 @@ impl ServerEngine {
 fn msg_loop(mut s: MsgLoopArgvs) {
     let mut msg_counter = 0usize;
     for (header, envelope) in s.in_r {
-        println!("server engine msg#{} received", msg_counter);
+        log::info!("server engine msg#{} received", msg_counter);
         if !process_msg(envelope, &mut s.map, &mut s.players, header.msg_id()) {
-            println!("shutting down");
+            log::info!("shutting down");
             break
         }
         msg_counter += 1;

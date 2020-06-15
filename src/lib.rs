@@ -1,12 +1,13 @@
 #[macro_use]
-pub mod helpers;
 
+pub mod helpers;
 pub mod map;
 pub mod player;
 pub mod server_engine;
 pub mod client_engine;
 pub mod transport;
 pub mod msg;
+pub mod log;
 
 pub mod state {
     use std::sync::{Arc, RwLock};

@@ -3,6 +3,7 @@ use crate::{
     state::GameState,
     msg::{Envelope},
     player,
+    log,
 };
 use std::{
     sync::{Arc, RwLock, mpsc::{Receiver, SyncSender}}
@@ -40,13 +41,14 @@ fn confirm_handler(
     let msg_id = confirm.msg_id();
     if let Some(saved_msg) = msg_map.write().unwrap().remove(&msg_id) {
         if !confirm.valid() { return }
+        log::info!("msg {} confirmed", msg_id);
         match saved_msg {
             Envelope::PlayerMove(m) =>
                 confirm_player_move_handler(&*m, state, ui_sender),
             _ => {}
         }
     } else {
-        println!("msg id({:x}) from server confirmation doesn't exist in msg_list", msg_id);
+        log::warn!("msg id({:x}) from server confirmation doesn't exist in msg_list", msg_id);
     }
 }
 
