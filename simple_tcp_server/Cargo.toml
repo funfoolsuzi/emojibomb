@@ -6,3 +6,4 @@ edition = "2018"
 
 [dependencies]
 emojibomb = { path = "../../emojibomb" }
+tokio = { version = "*", features = ["rt-threaded", "net"] }

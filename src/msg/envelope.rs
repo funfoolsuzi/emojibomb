@@ -36,6 +36,28 @@ impl Envelope {
                 Err(std::io::Error::new(std::io::ErrorKind::Other, "Empty MsgType can't be read_from'd")),
         }
     }
+    pub async fn async_read_from(reader: &mut (dyn tokio::io::AsyncRead + std::marker::Unpin), mtype: MsgType) -> std::io::Result<Self> {
+        match mtype {
+            MsgType::ShutDown => 
+                Ok(Self::ShutDown),
+            MsgType::SlotReserved =>
+                Ok(Self::SlotReserved(player::SlotReservedMsg::async_read_from(reader).await?)),
+            MsgType::Confirm =>
+                Ok(Self::Confirm(Box::new(ConfirmMsg::async_read_from(reader).await?))),
+            MsgType::PlayerAdd =>
+                Ok(Self::PlayerAdd(Box::new(player::AttachMsg::async_read_from(reader).await?))),
+            MsgType::PlayerMove =>
+                Ok(Self::PlayerMove(Box::new(player::MoveMsg::async_read_from(reader).await?))),
+            MsgType::PlayerCreated =>
+                Ok(Self::PlayerCreated(Box::new(player::CreatedMsg::async_read_from(reader).await?))),
+            MsgType::PlayerDelete =>
+                Ok(Self::PlayerDelete(player::DeleteMsg::async_read_from(reader).await?)),
+            MsgType::MapCreate =>
+                Ok(Self::MapCreate(Box::new(map::CreateMsg::async_read_from(reader).await?))),
+            MsgType::Empty =>
+                Err(std::io::Error::new(std::io::ErrorKind::Other, "Empty MsgType can't be read_from'd")),
+        }
+    }
     pub fn write_to(&self, writer: &mut dyn std::io::Write) -> std::io::Result<()> {
         match self {
             Self::Confirm(m) => (*m).write_to(writer),
@@ -45,6 +67,19 @@ impl Envelope {
             Self::MapCreate(m) => (*m).write_to(writer),
             Self::SlotReserved(m) => m.write_to(writer),
             Self::PlayerDelete(m) => m.write_to(writer), 
+            Self::ShutDown | Self::Register(_)
+            => Err(std::io::Error::new(std::io::ErrorKind::Other, "This type of Envelope can't be write_to'd")),
+        }
+    }
+    pub async fn async_write_to(&self, writer: &mut (dyn tokio::io::AsyncWrite + std::marker::Unpin)) -> std::io::Result<()> {
+        match self {
+            Self::Confirm(m) => (*m).async_write_to(writer).await,
+            Self::PlayerAdd(m) => (*m).async_write_to(writer).await,
+            Self::PlayerCreated(m) => (*m).async_write_to(writer).await,
+            Self::PlayerMove(m) => (*m).async_write_to(writer).await,
+            Self::MapCreate(m) => (*m).async_write_to(writer).await,
+            Self::SlotReserved(m) => m.async_write_to(writer).await,
+            Self::PlayerDelete(m) => m.async_write_to(writer).await, 
             Self::ShutDown | Self::Register(_)
             => Err(std::io::Error::new(std::io::ErrorKind::Other, "This type of Envelope can't be write_to'd")),
         }
